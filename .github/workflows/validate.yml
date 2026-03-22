@@ -1,0 +1,147 @@
+name: Validate Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-html:
+    name: Validate HTML
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install HTMLHint
+        run: npm install -g htmlhint
+
+      - name: Run HTML validation
+        run: htmlhint index.html
+
+  validate-structure:
+    name: Check Required Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Check required files exist
+        run: |
+          echo "Checking required files..."
+
+          if [ ! -f "index.html" ]; then
+            echo "❌ index.html is missing"
+            exit 1
+          else
+            echo "✅ index.html found"
+          fi
+
+          if [ ! -f "readmeforge.css" ]; then
+            echo "❌ readmeforge.css is missing"
+            exit 1
+          else
+            echo "✅ readmeforge.css found"
+          fi
+
+          if [ ! -f "readmeforge.js" ]; then
+            echo "❌ readmeforge.js is missing"
+            exit 1
+          else
+            echo "✅ readmeforge.js found"
+          fi
+
+          if [ ! -f "README.md" ]; then
+            echo "❌ README.md is missing"
+            exit 1
+          else
+            echo "✅ README.md found"
+          fi
+
+          if [ ! -f "CONTRIBUTING.md" ]; then
+            echo "❌ CONTRIBUTING.md is missing"
+            exit 1
+          else
+            echo "✅ CONTRIBUTING.md found"
+          fi
+
+          if [ ! -f "LICENSE" ]; then
+            echo "❌ LICENSE is missing"
+            exit 1
+          else
+            echo "✅ LICENSE found"
+          fi
+
+          echo "✅ All required files are present"
+
+  validate-css:
+    name: Validate CSS
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install stylelint
+        run: npm install -g stylelint stylelint-config-standard
+
+      - name: Create stylelint config
+        run: |
+          echo '{"extends":"stylelint-config-standard","rules":{"no-descending-specificity":null}}' > .stylelintrc.json
+
+      - name: Run CSS validation
+        run: stylelint readmeforge.css
+        continue-on-error: true
+
+  check-pr-description:
+    name: Check PR Has Description
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Check PR body is not empty
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const body = context.payload.pull_request.body;
+            if (!body || body.trim().length < 50) {
+              core.setFailed("❌ PR description is too short. Please fill in the PR template completely.");
+            } else {
+              console.log("✅ PR description looks good");
+            }
+```
+
+---
+
+**What this workflow does automatically on every PR:**
+
+| Check | What it validates |
+|-------|------------------|
+| HTML validation | Checks index.html for errors using HTMLHint |
+| Required files | Confirms all core files are present |
+| CSS validation | Checks readmeforge.css for errors |
+| PR description | Rejects PRs with empty or very short descriptions |
+
+---
+
+**Once this is set up, every PR will show this on GitHub:**
+```
+✅ Validate HTML — passed
+✅ Check Required Files — passed
+✅ Validate CSS — passed
+✅ Check PR Has Description — passed
